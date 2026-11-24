@@ -2,6 +2,8 @@
 
 An AI customer support agent that resolves tickets by taking real actions, like looking up orders, checking policy and issuing refunds, with guardrails in code and a human approval step for risky actions. Built with Python, Streamlit and the Claude API's tool use.
 
+**Live demo:** [support-agent-hussan.streamlit.app](https://support-agent-hussan.streamlit.app/) (password-protected to protect API credits. [Message me on LinkedIn](https://www.linkedin.com/in/hussan-asaf-36abbb428) for access)
+
 ![The agent pauses a $149 refund for human approval](screenshots/approval.png)
 
 ## What it does
