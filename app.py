@@ -1,4 +1,3 @@
-import html
 import json
 import os
 import uuid
@@ -21,6 +20,7 @@ except Exception:
 import agent  # noqa: E402
 import store  # noqa: E402
 from tools import APPROVAL_THRESHOLD, ToolContext  # noqa: E402
+import ui  # noqa: E402
 
 SAMPLE_TICKETS = {
     "Headphones stopped working": (
@@ -46,33 +46,12 @@ SAMPLE_TICKETS = {
     ),
 }
 
-STATUS_STYLE = {
-    "ok": ("#059669", "Done"),
-    "approved": ("#059669", "Approved by human"),
-    "awaiting approval": ("#D97706", "Waiting for approval"),
-    "denied": ("#DC2626", "Denied by human"),
-    "blocked": ("#DC2626", "Blocked by guardrail"),
-    "error": ("#DC2626", "Error"),
-}
-
-st.markdown(
-    """
-    <style>
-    .block-container {padding-top: 2rem; max-width: 1250px;}
-    .hero p {color: #6B7280; font-size: 1.05rem; margin-top: 0.25rem;}
-    .badge {display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px;
-            font-size: 0.78rem; font-weight: 600; color: white;}
-    .step-title {font-weight: 600; font-size: 1rem;}
-    .reply {background: #F5F3FF; border-left: 4px solid #4F46E5; padding: 1rem 1.25rem;
-            border-radius: 8px; white-space: pre-wrap;}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+ui.apply_theme()
 
 # ---------- Optional password for the public demo ----------
 password = os.getenv("APP_PASSWORD")
 if password and not st.session_state.get("unlocked"):
+    ui.eyebrow("Private demo")
     st.title("Support Agent")
     entered = st.text_input("Enter the demo password", type="password")
     if entered == password:
@@ -89,11 +68,6 @@ if "db_path" not in st.session_state:
 DB = st.session_state.db_path
 
 
-def badge(status):
-    color, label = STATUS_STYLE.get(status, ("#6B7280", status))
-    return f"<span class='badge' style='background:{color}'>{label}</span>"
-
-
 def safely(fn, *args, **kwargs):
     try:
         with st.spinner("The agent is working..."):
@@ -105,7 +79,7 @@ def safely(fn, *args, **kwargs):
 
 # ---------- Sidebar ----------
 with st.sidebar:
-    st.header("Guardrails")
+    ui.eyebrow("Guardrails")
     st.markdown(
         f"""
 - Only sees orders owned by the customer who wrote in
@@ -124,12 +98,7 @@ with st.sidebar:
         st.success("Demo store reset.")
 
 # ---------- Header ----------
-st.markdown(
-    "<div class='hero'><h1>Support Agent</h1>"
-    "<p>An AI agent that resolves customer tickets by taking real actions, with guardrails "
-    "and a human in the loop.</p></div>",
-    unsafe_allow_html=True,
-)
+ui.hero()
 
 agent_tab, data_tab = st.tabs(["Agent", "Store data"])
 
@@ -138,7 +107,7 @@ with agent_tab:
 
     # ----- Ticket -----
     with left:
-        st.subheader("Ticket")
+        ui.eyebrow("The ticket")
         choice = st.selectbox("Try a sample ticket", list(SAMPLE_TICKETS))
         sample_email, sample_message = SAMPLE_TICKETS[choice]
         email = st.selectbox(
@@ -154,19 +123,15 @@ with agent_tab:
 
     # ----- Agent activity -----
     with right:
-        st.subheader("Agent activity")
+        ui.eyebrow("What the agent did")
         run = st.session_state.get("run")
         if not run:
-            st.info("Pick a ticket and click **Run agent** to watch each step.")
+            ui.empty("Pick a ticket and click <b>Run agent</b> to watch each step here.")
         else:
             ctx = ToolContext(DB, run["customer_email"])
             for i, step in enumerate(run["trace"], start=1):
                 with st.container(border=True):
-                    st.markdown(
-                        f"<span class='step-title'>Step {i} · {step['tool']}</span> &nbsp; "
-                        f"{badge(step['status'])}",
-                        unsafe_allow_html=True,
-                    )
+                    ui.step_header(i, step["tool"], step["status"])
                     with st.expander("Details"):
                         st.markdown("**Input**")
                         st.code(json.dumps(step["input"], indent=2), language="json")
@@ -176,12 +141,15 @@ with agent_tab:
 
             if run["pending"]:
                 with st.container(border=True):
-                    st.markdown("### Approval needed")
+                    st.markdown("<div class='approval-title'>Approval needed</div>",
+                                unsafe_allow_html=True)
                     for block in run["pending"]["blocks"]:
                         details = block.input
-                        st.write(
-                            f"The agent wants to refund **${float(details.get('amount', 0)):.2f}** "
-                            f"on order **{details.get('order_id')}**."
+                        st.markdown(
+                            f"The agent wants to refund <span class='amount'>"
+                            f"${float(details.get('amount', 0)):.2f}</span> on order "
+                            f"<b>{details.get('order_id')}</b>.",
+                            unsafe_allow_html=True,
                         )
                         st.caption(f"Reason: {details.get('reason', '')}")
                     note = st.text_input("Note to the agent (optional)")
@@ -194,8 +162,8 @@ with agent_tab:
                         st.rerun()
 
             if run["reply"]:
-                st.markdown("**Reply to customer**")
-                st.markdown(f"<div class='reply'>{html.escape(run['reply'])}</div>", unsafe_allow_html=True)
+                ui.eyebrow("Reply to the customer")
+                ui.reply(run["reply"])
 
 with data_tab:
     st.caption("Your own copy of the demo store. Refunds the agent issues show up here.")

@@ -48,6 +48,7 @@ Ticket ──► agent.py ──► Claude (with tool definitions)
 | `store.py` | A fictional store (customers, orders, refunds) in SQLite |
 | `policies.md` | The help center the agent searches |
 | `app.py` | Streamlit interface: ticket, step-by-step activity, approval card, store data |
+| `ui.py` | The visual style: dark theme, glass cards, status badges |
 | `tests/` | 13 tests covering every guardrail and the pause/resume flow, with a scripted fake Claude so no API key is needed |
 
 Each visitor gets their own copy of the demo store, and the **Store data** tab shows the refunds the agent actually made.
